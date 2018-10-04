@@ -1,0 +1,650 @@
+<html>
+
+
+<!-- Mirrored from kolmck.ru/docs/kol_lesson_1.html by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 May 2018 18:00:50 GMT -->
+<head>
+<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<meta NAME="GENERATOR" CONTENT="Microsoft FrontPage 3.0">
+<title>Using the KOL library</title>
+<base target="_top">
+</head>
+<script language="JavaScript" type="text/javascript">
+//<!--
+// script to hide e-mail from mail scaner programs
+ function EMail4(prefix, name, domen, suffix)
+  {
+   if(prefix=='' && suffix=='')
+   {
+     location='mailto:' + name + '@' + domen;
+   }
+   else
+   {
+     if(suffix!='') prefix=prefix + ' ' + suffix;
+     location='mailto:"' + prefix + '" ' + name + '@' + domen;
+   }
+  }
+//-->
+</script>
+
+
+<body topmargin="0" style="text-align:justify">
+<!--#include virtual="/lvt.htm"-->
+
+<hr>
+<b><font FACE="Arial" SIZE="4">
+
+<p>Using the KOL library. Lesson 1: An Introduction.<br>
+</font><font FACE="Arial" size="3">by Thaddy de Koning</font></p>
+<font FACE="Arial" SIZE="4">
+
+<p>What is KOL?</p>
+</font></b><font SIZE="2">
+
+<p>KOL is a library that enables you to write very small, but full featured WIN32 platform
+applications using Delphi in an Objected Oriented context. It has always been possible to
+write small Delphi programs if you do not use the VCL but a procedural approach. KOL is
+the successor to the maybe better known XCL library and creates even smaller programs.
+Both KOL and XCL are designed by Vladimir Kladov, with contributions by others.</p>
+
+<p>As I am very impressed with what you can achieve with KOL and as there are few if any
+examples available save from the KOL documentation, I decided to do a series on KOL
+programming.</p>
+
+<p>In the process you will also learn a few tricks that are by many considered to be black
+art or at least only for the high priests of Delphiprogramming. With Kol it's easy!</p>
+
+<p>My intention is both to teach you how to use it and to promote KOL as a viable
+alternative to the VCL. For this series you need a copy of Kol. You can obtain that by
+downloading it from:</p>
+
+<p><a href="http://kol.thaddy.co.uk/">http://kol.thaddy.co.uk</a></p>
+
+<p>which is Vladimir Kladov's site.</p>
+
+<p>The sourcecode to this article can be found here:</p>
+
+<p><a href="www.thaddy.com/kol_lesson_1.html">http:www.thaddy.com/kol_lesson_1.zip</a></p>
+</font><font FACE="Arial" SIZE="4"><b>
+
+<p>About the Architecture</p>
+</b></font><font SIZE="2">
+
+<p>To achieve such small program size the main goal was to reduce overhead. The VCL has
+loads of that: convienience at the expense of resources mainly because of Runtime Type
+Information.</p>
+
+<p>So Vladimir set out to reduce that. He did this in Six main ways: 
+
+<ul>
+  <li>He derived his whole framework from the non-persistent Tobject.</li>
+  <li>He combined as many standard controls he could into to one Meta Control. Basically
+    there's only one Virtual Method Table for all controls.</li>
+  <li>He combined the above with the use of the old Object Pascal 5.5 paradigm for
+    objectconstruction: Using <b>NewXXX</b> instead of <b>Tobject.Create</b>. This also means
+    that if you are familiar with that concept KOL holds no secrets.</li>
+  <li>He rewrote the system.pas unit, mainly to achieve better granularity in linking.</li>
+  <li>He replaced a lot of procedural and instance variables by functions. This enables smart
+    linking:if the function does not get called it is removed by the linker, thus reducing
+    codesize.</li>
+  <li>It's NON visual, at least for now.</li>
+</ul>
+
+<p>There are several more reasons and optimizations but in my opinion these are the most
+important.</p>
+
+<p>Mind you, the architecture is sufficiently open to use just the features you like or
+want. I for one do not use the system.pas replacements. This is still very much OOP,
+although some people might want to argue otherwise.</p>
+</font><font FACE="Arial" SIZE="4"><b>
+
+<p>&nbsp;</p>
+
+<p>Let's get started</p>
+</b></font><font SIZE="2">
+
+<p>Since KOL is a non-visual environment we have to use our imagination as for how a
+program would look on screen. But since the programs are so small, the compilation time is
+also extremely short, measured in milliseconds. So basically we can refer to our product
+in a visual way just because the programs are so small. Hit F9 and it's there!</p>
+
+<p>The first thing we do is start a new project in the usual way.</p>
+
+<p>Compile the empty product and remember the executable size! In Delphi 4.02 its over 283
+K.</p>
+
+<p>The next thing we do is remove the references we don't need:</p>
+
+<p>If we open up the project we see:</p>
+</font>
+
+<p><font face="Courier" color="#000080" SIZE="2">program Project1;<br>
+uses</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">{Now Remove this}</font><font face="Courier"
+color="#000080" SIZE="2"> Forms,</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">{And this}</font><font face="Courier"
+color="#000080" SIZE="2"> Unit1 in 'Unit1.pas' {Form1};</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">{Remove this}</font><font face="Courier"
+color="#000080" SIZE="2"> {$R *.RES}<br>
+begin</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">{Remove this}</font><font face="Courier"
+color="#000080" SIZE="2"> Application.Initialize;</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">{Remove this}</font><font face="Courier"
+color="#000080" SIZE="2"> Application.CreateForm(TForm1, Form1);</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">{Remove this}</font><font face="Courier"
+color="#000080" SIZE="2"> Application.Run;<br>
+end.</font></p>
+<font SIZE="2">
+
+<p>Well, this is basically empty, a bit like a console application, but we do full
+Windows, so we add a couple of things we really need: The Windows unit, the Messages unit
+and the KOL unit. To make a fair comparison I will add a form in KOL. I will explain later
+what is does and how it does it.</p>
+
+<p>We end up with this:</p>
+</font>
+
+<p><font face="Courier" color="#000080" SIZE="2">program Project1;<br>
+uses<br>
+Windows, Messages, Kol;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">//not needed! {$R *.RES}<br>
+</font><font face="Courier" color="#000080" SIZE="2">var<br>
+&nbsp; Form1:pControl;<br>
+begin<br>
+&nbsp; Form1:=NewForm(nil, 'Form1');<br>
+&nbsp; Run(Form1);<br>
+end.</font></p>
+<font SIZE="2">
+
+<p>Run this, and you'll notice there isn't much difference. Looks the same, does the same
+and is utterly useless just the same. Only now our program is just 23k! which seems a bit
+more reasonable for a useless diskpolluting program, you'll agree.</p>
+
+<p>So, let me explain how it works.</p>
+
+<p>First, all controls, including the form and the application object itself are instances
+of one and the same Tcontrol object, with is initialized to its visual appearance in its
+construction function. We do not call Tcontrol.Create, but instead an initialization
+function that creates the control we want. For this purpose all control instance types
+have a creator function that starts with 'New' as convention.</p>
+
+<p>For a form, KOL defines the contruction function like this:</p>
+
+<p><font face="Courier">function NewForm( AParent: PControl; const Caption: String ):
+PControl;</font></p>
+
+<p>Kol allows us to skip an application object if the application is just one form. The
+VCL has always an implied application object instance defined in the forms unit. So in
+this case we pass nill as the parent and we saved ourselves an Application Object.</p>
+
+<p>A windows application is centered around a messagepump that sends messages to windows
+in the application to respond to. This loops until you terminate the application. This is
+what the 'Run' procedure does: It provides the messageloop to the application. In the
+pascal version of Kol it looks like this, and isn't very different from the VCL's
+implementation:</p>
+</font>
+
+<p><font face="Courier" color="#000080" SIZE="2">procedure Run( var AppletWnd: PControl );<br>
+var App: PControl;<br>
+begin<br>
+&nbsp; AppletRunning := True;<br>
+&nbsp; Applet := AppletWnd;<br>
+&nbsp; AppletWnd.CreateWindow;<br>
+&nbsp; while not AppletTerminated do<br>
+&nbsp;&nbsp;&nbsp; AppletWnd.ProcessMessages;<br>
+&nbsp; AppletRunning := False;<br>
+&nbsp; App := AppletWnd;<br>
+&nbsp; Applet := nil;<br>
+&nbsp; App.Perform( WM_CLOSE, 0, 0 );<br>
+&nbsp; App.Free;<br>
+&nbsp; AppletWnd := nil;<br>
+end;</font></p>
+<font SIZE="2">
+
+<p>But let's not divert too much from using KOL instead of explaining the internals.
+Suffice to say it works, and even better, almost the entire library is also available in a
+pure assembly language version for even smaller programs. I suggest you use the pascal
+version to understand how it works if you so choose, and use the assembler version for
+your programs. The versions are transparent to the user. The best way to get acquainted is
+to write a fullfeatured program and explain it as we go along.</p>
+
+<p>So here it is.</p>
+<b>
+
+<p>Our goal is to write a tray utility that utilizes the sensitivity of the mouse as a
+burglar alarm.</p>
+</b>
+
+<p>I first saw this Idea way back in history and I did a version in PowerBasic 2 for DOS,
+the successor to another Borland product:TurboBasic. By the way: Kol has in many ways
+similarities to PB/DLL, the Windows version of PowerBasic which also creates incredably
+small programs, even smaller than Kol but with a lot more work. </p>
+
+<p>First we set up a program framework as we did in the above example:</p>
+</font>
+
+<p><font face="Courier" color="#000080" SIZE="2">program RatAlert; </font><font
+face="Courier" SIZE="2" color="#FF0000">{get it?, you will!}</font><br>
+<font face="Courier" color="#000080" SIZE="2"><br>
+uses Windows, Messages, Kol;<br>
+<br>
+var<br>
+</font><font color="#008040" size="2" face="Courier">&nbsp; //Applet, {This will be our
+Application Object}<br>
+&nbsp; //commented by V.K. Applet is the predefined variable,<br>
+&nbsp; //and You should never declare your own one.</font></p>
+
+<p><font face="Courier" color="#000080" SIZE="2">&nbsp; Main,</font><font face="Courier"
+SIZE="2" color="#FF0000"> {This will be our Main Form}</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">&nbsp; </font><font face="Courier"
+color="#000080" SIZE="2">Panel </font><font face="Courier" SIZE="2" color="#FF0000">{This
+is just a panel}<br>
+&nbsp; </font><font face="Courier" color="#000080" SIZE="2">:pControl;</font></p>
+<font size="2"><b>
+
+<p>Kol Design Rule number one</b>:</p>
+<i>
+
+<p>All Controls are instances of one and the same object type. That is why we declare them
+as Pointers to TControl. VCL instances are implied pointers to Tobject derived instances
+as opposed to Kol where we have to explicitly declare them as pointers to objects.</p>
+</i>
+
+<p><font face="Courier"><font color="#000080">Popup:pMenu;</font> <font color="#FF0000">{A
+Popup menu to control the application}</font><br>
+<font color="#000080">TrayIcon:pTrayIcon;</font><font color="#FF0000">{A TrayIcon Object,
+as provided in the KOL library}</font></font></p>
+
+<p>Before we start with our main program let me explain a few other things about Kol:</p>
+<b>
+
+<p>Kol Design Rule number two</b>:</p>
+<i>
+
+<p>Kol is not a Visual Development Environment. It is a Rapid Application Development
+tool,though.</p>
+</i>
+
+<p><font color="#008040"><i>(Note by V.K.: this is not so for now. MCK, which is supplied
+with KOL, is fully functional visual development environment.)</i></font></p>
+
+<p>As we are all used to filling in lots of properties from the object inspector, you will
+be amazed how good a job Kol does of hiding complexity in a non-visual way. Almost all
+controls need just a few parameters set to get them up and running. This is one of the
+strengths of the constructor functions where the controls are initialized to pretty good
+standard values.</p>
+
+<p>Here's the main program:</p>
+
+<p>&nbsp;</p>
+
+<p><font face="Courier"><font color="#000080">begin<br>
+&nbsp; Applet:=NewApplet('RatAlert');</font> <font color="#FF0000">{Create a TControl
+instance as an Application instance}</font></font></p>
+
+<p>An Applet serves as the applications main window. It also controls if an application
+shows itself in the taskbar. This is why we need it. If we used the form as the
+application object, we won't be able to hide the application very easily from the taskbar
+once it is started . Now we can do so by simply stating:</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">&nbsp; Applet.Hide;</font></p>
+<font SIZE="2">
+
+<p>&nbsp;</p>
+
+<p>First, once our program is active we need a main window that captures the mouse. We
+can't use Applet, because that would show up in the taskbar.</p>
+
+<p>For now, we will hide the form as well:</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">Form :=NewForm(Applet,'Rat Alert'); </font><font
+face="Courier" SIZE="2" color="#FF0000">{Create a Form and it's caption}</font></p>
+
+<p><font color="#000080" face="Courier" SIZE="2">Form.Hide;</font></p>
+<font SIZE="2">
+
+<p>This panel is used as the parent for the PopUp Menu. If we created the menu with the
+Form as parent, it would be the main menu and not a popup menu, much like the VCL</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">Panel :=NewPanel(Form, esNone); </font><font
+face="Courier" SIZE="2" color="#FF0000">{Create a panel and set it's edge style, see KOL
+docs}</font></p>
+<font SIZE="2">
+
+<p>So Now we can create our Popup Menu. Because of the Non Visual nature, this is one
+control that needs more than just a couple of parameters, but it's straightforward once
+you understand it.</p>
+
+<p>You pass the constructor function the following parameters: 
+
+<ul>
+  <li>The parent, in this case the Panel that we created for this purpose</li>
+  <li>A String Array of Items with an empty Item last.</li>
+  <li>A pointer to the MenuHandler procedure.</li>
+</ul>
+
+<p>Event handling is done in much the same way as in the VCL, but we have to do a little
+more work.</p>
+
+<p>As in the VCL, the OnWhatever property is a pointer to a handling method. In the VCL
+its type is filled in for you. In Kol you have to do it yourself, either by deriving a new
+Object and overriding the OnWhatEver handler or by converting a normal procedure or a
+function in a procedure or function <b>of object. </b>The difference being, that a
+procedure of object has an extra, hidden, parameter that references <b>self</b> and a
+reference to Its data. In Kol you can write a procedure of object just like a normal
+procedure. The trick it uses can be used in the VCL as well. Once we've created it we have
+to cast it to the desired event type - in this case TOnMenuItem- so the compiler knows
+what to do with it and pass its pointer to the creation function. If you want to know how
+it works I suggest you look at the Kol sourcecode.</p>
+
+<p>We will call the menuhandler DoPopUpItem for now and implement it later.</p>
+
+<p>Kol provides us with a Utility function that turns a normal function in a
+method:MakeMethod.</p>
+
+<p>A method is described as a record with a pointer to its data and a pointer to Its code.</p>
+
+<p>Most of the time you simply pass nil as the data parameter.</p>
+<b>
+
+<p>Kol Design Rule number three</p>
+</b><i>
+
+<p>In Kol an Event handler must be explicitly casted to its event type when you use
+MakeMethod.</p>
+</i></font>
+
+<p><font color="#000080" face="Courier" SIZE="2">PopUp:=NewMenu(Panel,0,['Rat Alert
+&amp;On', 'Rat Alert O&amp;ff', '-', '&amp;Kill the Rat',''],<br>
+&nbsp; TOnMenuItem( MakeMethod( nil, @DoPopUpItem )));</font></p>
+<font SIZE="2">
+
+<p>Set the menuitems to their natural state:</p>
+
+<p>Item 1 is the Off Item, and we are not activated yet, so it should be disabled</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">PopUp.ItemEnabled[1]:=false;</font></p>
+<font SIZE="2">
+
+<p>So Now the TrayIcon. I have provided a resource script that contains two Icons and a
+WAV sound, but you can ofcourse use your own using the RATALERT.RC file as a template and
+compile it with BRCC32.</p>
+
+<p>The TrayIcon has a simple mouse handler attached to it that we call DoTrayMouse and
+implement later. You see that, as opposed to the menu, we do not set the eventhandler in
+the construction function, but rather assign the Onmouse event later. The Design rule
+behind this is, that a Tray Icon does not always need a handler to be usefull, whereas a
+Menu does.</p>
+
+<p>The parameters for the construction function are a parent, and a default Icon.</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">TrayIcon:=NewTrayIcon(Main,Main.Icon); </font><font
+face="Courier" SIZE="2" color="#FF0000">{Use the default icon}</font></p>
+
+<p><font color="#000080" face="Courier" SIZE="2">TrayIcon.OnMouse:=TOnTrayIconMouse(Makemethod(nil,@DoTraymouse));</font></p>
+
+<p><font color="#000080" face="Courier" SIZE="2">TrayIcon.ToolTip:='Rat Alert'; </font><font
+face="Courier" SIZE="2" color="#FF0000">{Simple tooltip}</font></p>
+<font SIZE="2">
+
+<p>Well, that's basically the whole program except for the implementation of our
+eventhandlers.</p>
+
+<p>All we need to make it run is:</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">Run(Applet);</font></p>
+
+<p><font color="#000080" face="Courier" SIZE="2">end.</font></p>
+<font SIZE="2">
+
+<p>Now let's get back to our eventhandlers. Because I did not forward declare them and I
+did not derive any descendent objects to implement them, these should be written above the
+main program body we have just finished, like:</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">program </font><font face="Courier"
+SIZE="2" color="#FF0000">XXXX</font></p>
+
+<p><font color="#000080" face="Courier" SIZE="2">Uses </font><font face="Courier" SIZE="2"
+color="#FF0000">X</font></p>
+
+<p><font face="Courier" SIZE="2" color="#FF0000">handlers go here</font></p>
+
+<p><font color="#000080" face="Courier" SIZE="2">begin</font></p>
+
+<p><font face="Courier" SIZE="2" color="#FF0000">Body goes here</font></p>
+
+<p><font color="#000080" face="Courier" SIZE="2">end.</font></p>
+<font SIZE="2">
+
+<p>The basic task for the program is to start howling when somebody touches our stuff. </p>
+
+<p>When our program is activated, the mouse is captured by our main form, so we implement
+our basic functionality in a handler that we assign to the main form's OnMouse event
+later, when its needed.</p>
+
+<p>We use one of the standard Kol Sound routines to play a wave file we have linked into
+the programs</p>
+
+<p>resource, along with the Icons.Remember that I explained about the hidden self
+parameter: Here its introduced in the declaration of the procedure. Compare it to the
+declaration of the event and you'll see why its called 'hidden'.</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">procedure
+DoMouseMove(Dummy:Pointer;Sender:pControl;var Mousedata:TmouseEventData);<br>
+begin<br>
+&nbsp; </font><font face="Courier" SIZE="2" color="#FF0000">{This plays the sound provided
+by the supplied resource</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">&nbsp; Alternatively you could load it from
+file into memory or<br>
+&nbsp; even play it from disk by one of the other KOL supplied<br>
+&nbsp; sound routines. See KOL.pas}</font><br>
+<font face="Courier" SIZE="2" color="#FF0000">&nbsp; </font><font color="#000080"
+face="Courier" SIZE="2">PlaySoundResourcename(hinstance,'ALARM',[poLoop,poNoStopAnotherSound,poNotImportant]);<br>
+end;</font></p>
+<font SIZE="2">
+
+<p>Our program is hidden, so logically the first thing that the user is confronted with is
+the Tray Icon itself. So we implement the handler for the TrayIcon first.</p>
+
+<p>Its main task is to popup the Popup menu. This is how it works. 
+
+<ul>
+  <li>The handler checks if there's a Right ButtonClick by looking at the standard mouse
+    messsages declared in Messages.pas.</li>
+  <li>It determines the mouse location by calling the API function GetCursorPos.</li>
+  <li>It pops up the PopUp menu at that location.</li>
+</ul>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">procedure
+dotraymouse(dummy:pointer;sender:Tobject;Message:Word);<br>
+var<br>
+&nbsp; P:Tpoint;<br>
+begin<br>
+&nbsp; if message = WM_RBUTTONUP then<br>
+&nbsp; begin<br>
+&nbsp;&nbsp; </font><font face="Courier" SIZE="2" color="#FF0000">{Where's the mouse?}</font><font
+color="#000080" face="Courier" SIZE="2"><br>
+</font>&nbsp;&nbsp;&nbsp; <font color="#000080" face="Courier" SIZE="2">getcursorpos(p);<br>
+&nbsp;&nbsp;&nbsp; </font><font face="Courier" SIZE="2" color="#FF0000">{Popup at that
+location}</font><font color="#000080" face="Courier" SIZE="2"><br>
+&nbsp;&nbsp;&nbsp; PopUp.PopUp(p.x,p.y);<br>
+&nbsp; end;<br>
+end;</font></p>
+<font SIZE="2">
+
+<p>So now the popup menu can be visible we can implement its handler.</p>
+
+<p>This is our most important routine:</p>
+
+<p>It works like this:</p>
+
+<p>Since our plan is to use the mouse as an alarm, we have to device a scheme that enables
+us to activate it without using the mouse itself.</p>
+
+<p>This is easier than delaying the activation in a thread f.e..</p>
+
+<p>So, we show a simple modal dialog, which can be closed by pressing 'Enter', after that,
+the application is activated as planned.</p>
+
+<p>Menu Items are accessed by Index. Any items that are separators are ignored. So we have
+to write code for three menuitems.</p>
+
+<p>There are a couple of interesting things to note. 
+
+<ul>
+  <li>First we dynamically assign and unassign our Alarm eventhandler.</li>
+  <li>Second we use a few API calls to obtain information about the screen and to force
+    Capture of the Mouse.</li>
+  <li>Third there are some usefull extra parameters in the messagebox function. Seen
+    WIN32.HLP.</li>
+  <li>We create an Invisible Visible Window! See if you can figure that....</li>
+</ul>
+
+<p>&nbsp;</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">procedure
+DoPopUpItem(Dummy:pointer;Sender:pMenu;Item:Integer);<br>
+begin<br>
+&nbsp; case item of<br>
+&nbsp; 0:begin <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Messagebox(Main.handle,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'Rat Alert guards your documents during'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +#13#10<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +'your absence.'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +#13#10#13#10<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +'Put the mouse on the objects you whish to guard.'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +#13#10<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +'Press &quot;Enter&quot; to activate'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +#13#10<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +'Don''t touch the mouse yourself!'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +#13#10<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#000080" face="Courier" SIZE="2">+#13#10<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; +'Copyright 1989-2001, Thaddy de Koning',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'Rat Alert!',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MB_OK or MB_APPLMODAL or MB_SETFOREGROUND or
+MB_ICONWARNING);</font></p>
+<font SIZE="2">
+
+<p>What we do here is a neat little trick to obtain an active window that is virtually
+invisible:</p>
+
+<p>We move it off of the visible area of the screen, except for one pixel :-)</p>
+
+<p>Then we change the Icon in the taskbar to indicate that RatAlert is activated.</p>
+
+<p>You an use either the icons supplied in the resource, or any icon you like. Again, as
+with the sound there are several ways you can do this with KOL. See KOL.pas}</p>
+</font>
+
+<p><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font><font
+face="Courier" SIZE="2" color="#FF0000">{Obtain the screen width}</font><font
+color="#000080" face="Courier" SIZE="2"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Main.left:=getsystemmetrics(SM_CXFULLSCREEN)-2;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font><font face="Courier" SIZE="2" color="#FF0000">{Activate
+the window}</font><font color="#000080" face="Courier" SIZE="2"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Main.Show;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Popup Housekeeping}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+pop.ItemEnabled[0]:=false;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pop.ItemEnabled[1]:=true;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Now, move it almost off the screen}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+setcursorpos(Main.left,Main.top);<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Make shure we own the mousemessages}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+setcapture(Main.handle);<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Eat the message queue before connecting,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; otherwise a pending mouse event could still<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; be fired!}<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#000080" face="Courier" SIZE="2">Main.ProcessPendingMessages;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{At this point we can connect our own mousehandlingroutine}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Main.OnMouseMove:=TOnMouse(MakeMethod(nil,@DoMouseMove));<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Change the Icon to indicate activation}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+TrayIcon.Icon:=LoadIcon(hinstance,'MAINICON2');<br>
+&nbsp;&nbsp;&nbsp;&nbsp; end;<br>
+&nbsp; 1:begin<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Kill the sound if it's playing}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PlaySoundStop;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{disconnect our mousehandler}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Main.OnMousemove:=Nil;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{We really won't want the mouse rightnow}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+releasecapture;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Popup Housekeeping}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PopUp.ItemEnabled[0]:=true;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PopIp.ItemEnabled[1]:=False;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Change the mouse back to its default}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+TrayIcon.Icon:=LoadIcon(hinstance,'MAINICON');<br>
+&nbsp;&nbsp;&nbsp;&nbsp; end;<br>
+&nbsp; 2:begin<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Kill the sound if it's playing}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PlaySoundStop;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{disconnect ouur mousehandler}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+TrayIcon.OnMouse:=nil;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{No mouse please}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Releasecapture;<br>
+</font><font face="Courier" SIZE="2" color="#FF0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+{Close the application}<br>
+</font><font color="#000080" face="Courier" SIZE="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Main.Perform(WM_CLOSE,0,0);<br>
+&nbsp;&nbsp;&nbsp;&nbsp; end;<br>
+&nbsp; end;<br>
+end;</font></p>
+<font SIZE="2">
+
+<p>And this completes the first lesson except for me obfuscating the whole source with
+comments, so that's why you can download the code without most of the comments. Then you
+can actually see how small the code is, how elegant Kol works and finally you can compile
+the code and see what the whole thing looks like. Pretty impressive for a first effort,
+don't you think?</p>
+
+<p><font color="#008040">[Some text here was skipped - by V.K.]</font></p>
+
+<p>Please let me know what you think of Kol. I personally think it is very usefull and
+very elegant and deserves a place in the toolkit of almost every Delphi developer.</p>
+
+<p>You can reach me at:</p>
+
+<p><a href="javascript:EMail4('','thaddy','thaddy.com','')" target="_self">mailto:thaddy@thaddy.com</a></p>
+
+<p>Thaddy de Koning</p>
+
+<p>&nbsp;</p>
+</font><!--#include file="invisible_other.js"-->
+
+</body>
+
+<!-- Mirrored from kolmck.ru/docs/kol_lesson_1.html by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 May 2018 18:00:50 GMT -->
+</html>

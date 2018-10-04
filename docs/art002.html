@@ -1,0 +1,181 @@
+<html>
+
+
+<!-- Mirrored from kolmck.ru/docs/art002.htm by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 May 2018 18:00:51 GMT -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
+<title></title>
+</head>
+<script language="JavaScript" type="text/javascript">
+//<!--
+// script to hide e-mail from mail scaner programs
+ function EMail4(prefix, name, domen, suffix)
+  {
+   if(prefix=='' && suffix=='')
+   {
+     location='mailto:' + name + '@' + domen;
+   }
+   else
+   {
+     if(suffix!='') prefix=prefix + ' ' + suffix;
+     location='mailto:"' + prefix + '" ' + name + '@' + domen;
+   }
+  }
+//-->
+</script>
+
+
+<body bgcolor="#BCBCBC">
+
+<h1 align="center"><small><font face="Arial"><strong>KOL - codo-economy object library for
+Delphi</strong></font></small></h1>
+
+<p align="right"><font face="Arial"><strong>Copyright (C) By Vladimir Kladov.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>The purpose of given article is to convince a
+reader (I hopes, this text will fall into the hands of programmer), got accustomed to big
+sizes of modern programs (on, no, applications, programs were not yet so large) that their
+are unscrupulously cheaten. The cheat is following: when confirm that program for Windows
+(for example), if it can do something useful, at all can not be less... well, will say,
+about 300 kilobytes. But if this much &quot;clever&quot; program, containing much much
+useful possibilities, good interface, fine interacting with the user, supports different
+formats of data, modern client-server technology, it can not be less than 500 megs. The
+unimaginable rubbish. We are defraud!</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>Indeed, object programming allows to create
+very economical on the size a code. Moreover, very efficient. Examples? Java. It is an
+object-oriented programming. And Java applets much low on its sizes, but as much useful
+they can do! However, speech will go not on the Java. Delphi is the subject of the
+article.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>Oddly to say, but Delphi is renderred as the
+instrument, which made it possible to create a KOL library - Key Objects Library (Key
+Object Library), which allows to produce very compact executables. This can seem strange
+therefore, because programs, made using Delphi, usually are not so small. Minimum start
+size of the executable, representing a single empty window, which can be moved on the
+screen and closed, and can do nothing more, forms near 300 kilobytes of size. Moreover,
+with every issue of each next Delphi generation such start size is increased on several
+tenths of innocent kilobytes.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>The KOL library allows to make not less
+powerful applications, than standard Delphi library - VCL (Visual Component Library). And
+herewith obtain a reducing the sizes of programs in 5-15 times! For instance, executable
+DirComp available for download on the KOL Web-Page, occupies without the compression near
+65 kilobyteses. Similar executable written using a standard Delphi library, occupied 750
+kilobyteses. Difference is impressing, not truth?</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>KOL is not only object-oriented, as well it is
+visual library. Programs and their graphic interface can be designed actually in the same
+way, as in VCL visual ambience. KOL is followed with MCK library (Mirror Classes Kit),
+which contains of VCL-components, installing on the palette by the usual way. The single
+difference in that mirror components of library MCK exist only on stage of development
+(design time), participating in generations &quot;real&quot; code compatible with
+requirements of library KOL. In operation (run time) this code is executed, and those,
+which was added by developer himself. In the run-time code there are no references to VCL
+components, only to KOL objects, compact and efficient.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>What is the secret of of code compactness?
+Answer is not a single, but it is possible to select the main reasons. In first, let us
+note Delphi compiler ability to exclude unclaimed code while linking the executable.
+Procedures and variables, which are not referred from other code (which is already
+contributed in the code area list), are rejected and in the further assembly are not
+considered. Regrettably, this ability of Delphi compiler (named &quot;smart linking&quot;)
+is limited a lot. In particular, virtual methods of used classes and objects can not be
+withdraw from the process of compiling and assemblies of the executable. Accordingly,
+variables and procedures (methods), which are referenced from such virtual methods, also
+can be not rejected.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>While planning the KOL, this circumstances were
+taken into account. The author abandoned hard following to object-oriented programming
+canons. In particular, in KOL one and same object type can be used for encapsulations
+several objects similar to each other. For instance, TControl type is not base for the
+visual objects like in VCL. TControl object type in the KOL library without some
+inheritance can execute a role of different visual objects (buttons, labels, edits, etc.)
+- depending on what global function was used to create each object (for instance,
+NewPanel, NewButton and etc.)</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>Such method of combining of several objects in
+one object type brings some mess, as far as alongside with methods and properties general
+for all objects, there are exist methods and properties distinctive only for certain
+object kinds. As far as type (class) is the same, there is exist a probability of wrong
+using a methods, not proper for the given kind of the object. The important reason to go
+this way, was a necessity to avoid a large number of virtual methods.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>Of course, if virtual methods were successfully
+skipped by the compiler in cases, when they not needed (and potentially such possibility
+exists), structure of objects could be clearer. However, even and in this case VCL did not
+allow programs to become much more compact. And problem here already in what way VCL
+developers designed their library so that many objects are created and many actions are
+produced even before those become really necessary, and either stay just stored in code
+section without executing, or perform absolutely unnecessary work. For instance, if a
+visual object is created, it initializy font, canvas for drawing, drag-and-dock managers,
+ensemble of many other objects - on any event: but suddenly are necessary! Certainly,
+program may need any of those capabilities, such as changing object's font. Program can be
+designed for using a popular interface using drag-and-dock. It can, but after all not
+obliged, yes?</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>In contrasted to VCL, KOL library works with
+unnecessary actions and objects vastly more neatly. They (actions) are executed and
+(objects) are initialized only when they are taked for the first time. Clearing of
+resources and memory allocated in the destructor is not a problem: the single and the same
+(virtual) method Free beautifully copes with the task. Strictly, this is the main reason
+why program, made using KOL library, are so small in size.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>In the KOL library several different ways are
+used to implement such postponed decision, depending on natures of code unnecessary to
+include to the final code. It is more important not to enumerate these ways, which,
+generally speaking, are simply ingenious using the generally accepted programmer's
+acceptance, but it is much more important to explain and understand an essence of their
+action.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>Well known that source text of a program is
+compiled to executable code in result of functioning several programs: pre-compiler,
+compiler, picker. Note that when we are telling about Delphi, there are no sense to
+separate these steps, since all of these are executed by the same program. So, dialect
+&quot;compiler&quot;, shall imply all these stages together. As far as Delphi compiler
+comes to a conclusion, to include or not to include a code of a procedure or function to
+the program, it should explain, how this process can be controlled from a library code
+depending on whether it is requested by the developer of the project or not.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>All these can be explained with a following
+simple example. Let our visual object (button, to the example) is kept Font property
+(font). Unlike VCL, shall not create a correspondent object in the constructor of our
+object (button, master of the font). Instead, create it first in a method, which executes
+reading of the Font property (method GetFont), in case when it not yet created. If there
+are no reading of the Font property in the executable at all (i.e. developer need not
+change a font of their own visual objects, and all such ones use standard font), compiler
+does not find any reference to GetFont method, and accordingly, does not include a code of
+this method to the program. Since this, no references will be discovered nor on the
+constructor of object of font, nor on other procedures, which otherwise are used and have
+got in the executable module.</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>This example explains only one of the many used
+ways. But the idea of all such ways is the same, as it was already said above: to postpone
+a decision if to include an additional code until it does not requested by the project
+developer. The opinion of the author is, that this way is totally branches off with modern
+programming practice. The KOL gives an example, which in particular proved an absurdity of
+the situation, when about 90% code in modern programs are slag, rubbish, which do not work
+or idle, and only in vain consumes resources of a processor, operative memory, occupies a
+place on hard disk, spend a time at the transmission of hudreds of superfluous kilobytes
+on network and through internet, and spends your time and your many. And not for nothing
+but sometimes in response to the question, &quot;how to reduce a size of a program&quot;,
+we get following answer: &quot;Why to reduce? Than more volume, that will more pay&quot;.
+(Variants: &quot;solid&quot;, customers more respect). Not nonsense?</strong></font></p>
+
+<p align="left"><font face="Arial"><strong>If someone from Delphi-programmers read this
+and interested in, welcome to the KOL/MCK Web-Page, download these libraries (all
+absolutely free, with source codes), and try. Be sure: you will not regret!</strong></font></p>
+
+<p align="right"><font face="Arial"><strong>1-Sep-2001 (translated to English 5-Apr-2002,
+published in English 23-Sep-2002)</strong></font></p>
+
+<p align="left"><strong><font face="Arial">KOL/MCK Web-Page : <a
+href="http://kol.thaddy.co.uk/">http://kol.thaddy.co.uk</a> <br>
+e-mail: </font><a href="javascript:EMail4('','bonanzas','online.sinor.ru','')" target="_self">
+<font face="Arial">bonanzas
+@ online.sinor.ru</font></a><font face="Arial"> </font></strong></p>
+<!--#include file="invisible_other.js"-->
+</body>
+
+<!-- Mirrored from kolmck.ru/docs/art002.htm by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 May 2018 18:00:51 GMT -->
+</html>

@@ -1,0 +1,820 @@
+<html>
+
+
+<!-- Mirrored from kolmck.ru/docs/WritingComp.htm by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 May 2018 18:00:53 GMT -->
+<head>
+<style type="text/css"><!--
+.MainText {font-family: Arial, Helvetica, sans-serif; font-size: 10pt; ; text-align: justify; text-indent: 15pt}
+p {  margin-top: 0px; margin-bottom: 0px; padding-top: 0px; padding-bottom: 0px}
+.CodeFragment {  font-family: "Courier New", Courier, mono; font-size: 9pt; background-color: #F0F0F0; margin-left: 0px; margin-top: 12px; margin-bottom: 12px; padding-top: 0px; padding-right: 8px; padding-bottom: 0px; padding-left: 8px; border: 1px #666666 solid; margin-right: 0px}
+.Titles {  font-family: Arial, Helvetica, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; margin-top: 8px; margin-bottom: 8px}
+-->
+</style>
+<title>Создание визуальных компонентов для
+библиотеки KOL</title>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+
+<p align="left" class="Titles">Создание визуальных
+компонентов для библиотеки KOL.</p>
+
+<p align="center"><font size="2" face="Arial, Helvetica, sans-serif"><b>(с) 2003-2004
+Юрий Сидоров <a
+href="javascript:EMail4('','jura','blagovest.com?subject=KOL%20MCK%20article','')"
+target="_self"><script language="JavaScript" type="text/javascript">
+//<!-- 
+  PrintMail('jura','blagovest.com')
+//-->
+</script></a></b></font></p>
+
+<p align="left" class="MainText">&nbsp;</p>
+
+<p align="left" class="MainText">Целю данной статьи, является
+показать на примере написание <i>визуального KOL
+компонента</i>, а также создание для него <i>зеркального
+компонента МСК</i> (зеркальные компонеты МСК
+являются вспомогательными и существуют только
+на этапе проектирования в Delphi IDE). В статье
+рассмотрены &quot;подводные камни&quot;, с которыми
+может столкнуться разработчик компонентов KOL.
+Также рассмотрен новый метод визуализации МСК
+компонентов, основанный на том, что в МСК
+компоненте создается соответствующий ему
+компонент KOL, который отображает себя сам на
+этапе проектирования в Delphi IDE. Таким образом,
+отпадает необходимость делать отрисовку МСК
+компонентов вручную! Этот метод визуализации
+доступен в МСК, начиная с версии 1.65.</p>
+
+<p align="left" class="MainText">Исходные коды компонента,
+рассмотренного в статье, можно загрузить <a
+href="checkmesh.html">отсюда</a>.</p>
+
+<p align="left" class="MainText"><br>
+</p>
+
+<p align="left" class="Titles">1. Создание визуального
+компонента KOL.</p>
+
+<p class="MainText"><img src="checkmesh.gif" width="126" height="149" align="right"
+hspace="8">При создании собственных визуальных
+компонентов в KOL рекомендуется наследовать их от
+объекта <b>TControl</b>. При этом Вы получаете уже
+готовую реализацию многих свойств, методов и
+событий, которыми должен обладать Ваш компонент.
+Например, любому визуальному компоненту
+необходимы методы/свойства для изменения
+размера, позиции, цвета, шрифта, и т.д. Также
+необходимы и события от клавиатуры, мыши, и т.д.
+Все это и многое другое уже реализовано в <b>TControl</b>.
+Вы можете либо создать компонент с собственной
+отрисовкой и обработкой ввода пользователя, либо
+использовать любой из стандартных компонентов
+как основу.</p>
+
+<p class="MainText">Так как в KOL используется старая
+объектная модель Borland Object Pascal, где вместо классов
+(<b>class</b>) используются объекты (<b>object</b>), и, по
+умолчанию, в объекте <b>TControl</b> нет виртуальных
+конструкторов (экземпляры <b>TControl</b> создаются с
+помощью обычных функций <b>NewXXX</b>), то полноценного
+наследования не получается. Как следствие, в
+объекте-наследнике нельзя использовать
+виртуальные методы базового объекта и нельзя
+добавлять новые поля данных. Можно только
+добавлять новые методы и свойства, чтение и
+запись которых производится с помощью методов.
+Для решения проблемы хранения данных компонента
+в <b>TControl</b> существуют два поля <b>CustomData: pointer</b> и <b>CutomObj:
+TObj</b>. Первому - можно присвоить указатель на
+динамически выделенный блок памяти, содержащий
+данные и события Вашего компонента, второму -
+указатель на экземпляр объекта (наследника <b>TObj</b>),
+служащему тем же целям. При уничтожении
+компонента объекты, на которые ссылаются поля <b>CustomData</b>
+и <b>CutomObj</b>, уничтожаются автоматически. Если в
+компоненте используются поля типа строка (<b>string</b>),
+то перед уничтожением компонента необходимо
+присвоить им всем пустую строку ( например: <b><font
+face="Courier New, Courier, mono">Prop1 := '';</font></b> ). Поэтому для
+хранения данных компонента рекомендуется
+сделать вспомогательный объект на базе <b>TObj</b> и в
+его деструкторе делать завершающие действия:
+освобождать используемую память и присваивать
+строковым полям пустую строку.</p>
+
+<p class="MainText">Для создания компонента в KOL принято
+использовать функцию-конструктор с именем <b>New&lt;имя
+компонента&gt;</b>, которая возвращает указатель на
+новый экземпляр компонента. Внутри
+функции-конструктора сначала вызывается
+функция-конструктор базового объекта, например <b>NewPanel</b>,
+которая, собственно, и создает объект. Если
+компонент не строится на базе стандартного
+компонента KOL, то вызываются функция <b>_NewControl</b>
+или <b>_NewCommonControl</b> (используется только при
+создании компонентов, представляющих собой
+стандартные элементы управления Windows). Далее
+следует инициализация, необходимая для работы
+компонента.</p>
+
+<p class="MainText">Для того чтобы компонент мог
+обрабатывать сообщения, используются
+функции-обработчики сообщений, которые
+регистрируются с помощью метода <b>AttachProc</b>.</p>
+
+<p class="MainText">В качестве примера рассмотрим
+компонент TCheckMesh (см. рисунок). Этот компонент
+представляет собой сетку с некоторым
+количеством ячеек по горизонтали и по вертикали.
+При нажатии мышкой на ячейку она становится
+&quot;отмеченной&quot; (изменяется ее цвет). Компонент
+унаследован от стандартной панели KOL,
+следовательно, все свойства, методы и события
+панели будут в нем доступны.</p>
+
+<p class="MainText">Итак, объявляем наш компонент:</p>
+<div class="CodeFragment">
+
+<pre><b>type
+  </b>PCheckMesh = ^TCheckMesh;
+  TCheckMesh = <b>object</b>(TControl)
+  <b>private
+    procedure </b>PaintMesh( Sender: PControl; DC: HDC );
+    <b>procedure </b>MouseDown(pt: TPoint);
+    <b>function </b>GetLineColor: TColor;
+    <b>procedure </b>SetLineColor(<b>const </b>Value: TColor);
+    <b>function </b>GetXCells: integer;
+    <b>function </b>GetYCells: integer;
+    <b>function </b>GetState(X, Y: integer): boolean;
+    <b>procedure </b>SetState(X, Y: integer; <b>const </b>Value: boolean);
+    <b>function </b>GetCheckColor: TColor;
+    <b>procedure </b>SetCheckColor(<b>const </b>Value: TColor);
+    <b>function </b>GetOnCellClick: TOnCellClickEvent;
+    <b>procedure </b>SetOnCellClick(<b>const </b>Value: TOnCellClickEvent);
+  <b>public
+    </b><font
+color="#000080">// Цвет линий сетки
+    </font><b>property </b>LineColor: TColor <b>read </b>GetLineColor <b>write </b>SetLineColor;
+    <font
+color="#000080">// Цвет заливки отмеченной ячейки
+    </font><b>property </b>CheckColor: TColor <b>read </b>GetCheckColor <b>write </b>SetCheckColor;
+    <font
+color="#000080">// Количество ячеек по горизонтали
+    </font><b>property </b>XCells: integer <b>read </b>GetXCells;
+    <font
+color="#000080">// Количество ячеек по вертикали
+    </font><b>property </b>YCells: integer <b>read </b>GetYCells;
+    <font
+color="#000080">// Массив состояний ячеек: True - ячейка отмечена, False - нет
+    </font><b>property </b>State[X, Y: integer]: boolean <b>read </b>GetState <b>write </b>SetState; <b>default</b>;
+    <font
+color="#000080">// Событие OnCellClick вызывается при щелчке мышью на ячейке
+    </font><b>property </b>OnCellClick: TOnCellClickEvent <b>read </b>GetOnCellClick <b>write </b>SetOnCellClick;
+  <b>end</b>;
+</pre>
+</div>
+
+<p class="MainText">Обратите внимание на то, что внутри
+объекта компонента нет полей данных и назначение
+и чтение всех свойств реализовано в виде методов.
+Для хранения данных компонента используется
+следующий вспомогательный объект:<br>
+</p>
+<div class="CodeFragment">
+
+<pre><b>type
+  </b>PCheckMeshData = ^TCheckMeshData;
+  TCheckMeshData = <b>object</b>(TObj)
+  <b>private
+    </b>fXCells: integer;
+    fYCells: integer;
+    fStates: PBoolArray;
+    fLineColor: TColor;
+    fCheckColor: TColor;
+    fOnCellClick: TOnCellClickEvent;
+  <b>public
+    destructor </b>Destroy; <b>virtual</b>;
+  <b>end</b>;
+
+<b>destructor </b>TCheckMeshData.Destroy;
+<b>begin
+  </b>FreeMem(fStates);
+  <b>inherited</b>;
+<b>end</b>;</pre>
+</div>
+
+<p class="MainText">Теперь создаем функцию-конструктор
+компонента, параметрами которой являются:
+родительский компонент, стиль рамки и количество
+ячеек по горизонтали и по вертикали.</p>
+<div class="CodeFragment">
+
+<pre>
+<b>function </b>NewCheckMesh(AParent: PControl; EdgeStyle: TEdgeStyle; 
+                      XCells, YCells: integer): PCheckMesh;
+<b>var
+  </b>data: PCheckMeshData;
+<b>begin
+  </b><font
+color="#000080">// Вызываем конструктор панели NewPanel
+  </font>Result := PCheckMesh(NewPanel(AParent, EdgeStyle));
+  <font
+color="#000080">// Создаем экземпляр объекта TCheckMeshData, необходимый для хранения
+  // данных и событий компонента TCheckMesh
+  </font>New(data, Create);
+  <font
+color="#000080">// Присваиваем его полю CustomObj нашего компонента
+  </font>Result.CustomObj := data;
+  <font
+color="#000080">// Устанавливаем начальные значения свойств
+  </font>data.fXCells := XCells;
+  data.fYCells := YCells;
+  data.fLineColor := clBtnText;
+  data.fCheckColor := clWindow;
+  <font
+color="#000080">// Выделяем память для хранения состояния ячеек
+  </font>GetMem(data.fStates, XCells*YCells*SizeOf(boolean));
+  FillChar(data.fStates^, XCells*YCells*SizeOf(boolean), 0);
+  <font
+color="#000080">// Регистрируем свой обработчик сообщений
+  </font>Result.AttachProc(@CheckMeshWndProc);
+  <font
+color="#000080">// Устанавливаем свой обработчик отрисовки
+  </font>Result.OnPaint := Result.PaintMesh;
+<b>end</b>;</pre>
+</div>
+
+<p class="MainText">Чтобы создать необходимый Вашему
+компоненту обработчик сообщений нужно знать о
+том, какие бывают сообщения в Windows. В компоненте
+TCheckMesh обрабатываются нажатие мыши и изменение
+размера. Так выглядит обработчик сообщений
+компонента:</p>
+<div class="CodeFragment">
+
+<pre><b>function </b>CheckMeshWndProc( Sender: PControl; <b>var </b>Msg: TMsg;
+                                  <b>var </b>Rslt: Integer ): Boolean;
+<b>begin
+  </b>Result := False;
+  <b>case </b>Msg.<b>message of
+    </b><font
+color="#000080">// Сообщение WM_SIZE приходит при изменении размера компонента
+    </font>WM_SIZE:
+      Sender.Invalidate;
+    <font
+color="#000080">// Сообщение WM_LBUTTONDOWN приходит при нажатии левой кнопки мышью
+    // внутри компонента
+    </font>WM_LBUTTONDOWN:
+      <b>begin
+        </b><font
+color="#000080">// Вызываем обработчик нажатия мыши нашего компонента
+        </font>PCheckMesh(Sender).MouseDown(SmallPointToPoint(TSmallPoint(Msg.LParam)));
+      <b>end</b>;
+  <b>end</b>;
+<b>end</b>;</pre>
+</div>
+
+<p class="MainText">Так выглядят функции записи и чтения
+свойств и событий компонента:<br>
+</p>
+<div class="CodeFragment">
+
+<pre><b>function </b>TCheckMesh.GetCheckColor: TColor;
+<b>begin
+  </b>Result := PCheckMeshData(CustomObj).fCheckColor;
+<b>end</b>;
+
+<b>function </b>TCheckMesh.GetLineColor: TColor;
+<b>begin
+  </b>Result := PCheckMeshData(CustomObj).fLineColor;
+<b>end</b>;
+
+<b>function </b>TCheckMesh.GetOnCellClick: TOnCellClickEvent;
+<b>begin
+  </b>Result := PCheckMeshData(CustomObj).fOnCellClick;
+<b>end</b>;
+
+<b>function </b>TCheckMesh.GetState(X, Y: integer): boolean;
+<b>begin
+  if </b>X &gt;= XCells <b>then
+    </b>X := XCells - 1;
+  <b>if </b>Y &gt;= YCells <b>then
+    </b>Y := YCells - 1;
+  Result := PCheckMeshData(CustomObj).fStates^[(Y*XCells + X)*SizeOf(boolean)];
+<b>end</b>;
+
+<b>function </b>TCheckMesh.GetXCells: integer;
+<b>begin
+  </b>Result := PCheckMeshData(CustomObj).fXCells;
+<b>end</b>;
+
+<b>function </b>TCheckMesh.GetYCells: integer;
+<b>begin
+  </b>Result := PCheckMeshData(CustomObj).fYCells;
+<b>end</b>;
+
+<b>procedure </b>TCheckMesh.SetCheckColor(<b>const </b>Value: TColor);
+<b>begin
+  </b>PCheckMeshData(CustomObj).fCheckColor := Value;
+  Invalidate;
+<b>end</b>;
+
+<b>procedure </b>TCheckMesh.SetLineColor(<b>const </b>Value: TColor);
+<b>begin
+  </b>PCheckMeshData(CustomObj).fLineColor := Value;
+  Invalidate;
+<b>end</b>;
+
+<b>procedure </b>TCheckMesh.SetOnCellClick(<b>const </b>Value: TOnCellClickEvent);
+<b>begin
+  </b>PCheckMeshData(CustomObj).fOnCellClick := Value;
+<b>end</b>;
+
+<b>procedure </b>TCheckMesh.SetState(X, Y: integer; <b>const </b>Value: boolean);
+<b>begin
+  if </b>X &gt;= XCells <b>then
+    </b>X := XCells - 1;
+  <b>if </b>Y &gt;= YCells <b>then
+    </b>Y := YCells - 1;
+  PCheckMeshData(CustomObj).fStates^[(Y*XCells + X)*SizeOf(boolean)] := Value;
+  Invalidate;
+<b>end</b>;</pre>
+</div>
+
+<p class="MainText">И, наконец, обработчики нажатия мыши и
+рисования компонента:<br>
+</p>
+<div class="CodeFragment">
+
+<pre><font color="#000080">// Вызывается из обработчика сообщений при нажатии левой кнопки мыши
+</font><b>procedure </b>TCheckMesh.MouseDown(pt: TPoint);
+<b>var
+  </b>x, y: integer;
+<b>begin
+  </b>x := pt.x <b>div </b>(ClientWidth <b>div </b>PCheckMeshData(CustomObj).fXCells);
+  y := pt.y <b>div </b>(ClientHeight <b>div </b>PCheckMeshData(CustomObj).fYCells);
+  State[x, y] := <b>not </b>State[x, y];
+  <b>if </b>Assigned(PCheckMeshData(CustomObj).fOnCellClick) <b>then
+    </b>PCheckMeshData(CustomObj).fOnCellClick(@Self, x, y);
+<b>end</b>;
+
+<font
+color="#000080">// Здесь мы рисуем наш компонент
+</font><b>procedure </b>TCheckMesh.PaintMesh( Sender: PControl; DC: HDC );
+<b>var
+  </b>x, y, cx, cy, cw, ch: integer;
+  R: TRect;
+<b>begin
+  </b>Canvas.Handle := DC;
+
+  cw := ClientWidth;
+  ch := ClientHeight;
+  cx := cw <b>div </b>PCheckMeshData(CustomObj).fXCells;
+  cy := ch <b>div </b>PCheckMeshData(CustomObj).fYCells;
+
+  Canvas.Brush.BrushStyle := bsSolid;
+  <b>for </b>y := 0 <b>to </b>PCheckMeshData(CustomObj).fYCells - 1 <b>do begin
+    </b>R.Top := y*cy;
+    <b>if </b>y &lt;&gt; PCheckMeshData(CustomObj).fYCells - 1 <b>then
+      </b>R.Bottom := (y + 1)*cy
+    <b>else
+      </b>R.Bottom := ch;
+    <b>for </b>x := 0 <b>to </b>PCheckMeshData(CustomObj).fXCells - 1 <b>do begin
+      if </b>PCheckMeshData(CustomObj).fStates^[(Y*XCells + X)*SizeOf(boolean)] <b>then
+        </b>Canvas.Brush.Color := PCheckMeshData(CustomObj).fCheckColor
+      <b>else
+        </b>Canvas.Brush.Color := Color;
+      R.Left := x*cx;
+      <b>if </b>x &lt;&gt; PCheckMeshData(CustomObj).fXCells - 1 <b>then
+        </b>R.Right := (x + 1)*cx
+      <b>else
+        </b>R.Right := cw;
+      Canvas.FillRect(R);
+    <b>end</b>;
+  <b>end</b>;
+
+  Canvas.Pen.Color := PCheckMeshData(CustomObj).fLineColor;
+
+  <b>for </b>y := 1 <b>to </b>PCheckMeshData(CustomObj).fYCells - 1 <b>do begin
+    </b>Canvas.MoveTo(0, y*cy);
+    Canvas.LineTo(cw, y*cy);
+  <b>end</b>;
+  <b>for </b>x := 1 <b>to </b>PCheckMeshData(CustomObj).fXCells - 1 <b>do begin
+    </b>Canvas.MoveTo(x*cx, 0);
+    Canvas.LineTo(x*cx, ch);
+  <b>end</b>;
+
+  Canvas.Brush.BrushStyle := bsClear;
+  Canvas.Rectangle(0, 0, cw, ch);
+  Canvas.Brush.BrushStyle := bsSolid;
+<b>end</b>;</pre>
+</div>
+
+<p align="left" class="Titles"><br>
+2. Создание зеркального компонента МСК.</p>
+
+<p class="MainText">Теперь пришло время сделать компонент
+доступным для визуального проектирования в Delphi
+IDE. Для этого необходимо создать, так называемый,
+зеркальный МСК компонент. Он представляет собой
+VCL компонент, который будет представлять Ваш
+компонент на этапе проектирования. Также
+зеркальный компонент ответственен за генерацию
+кода создания и инициализации KOL компонента,
+зеркалом которого он является.</p>
+
+<p class="MainText">Раньше перед разработчиками
+компонентов стояла проблема визуализации МСК
+компонентов в дизайнере, т. к. приходилось всю
+отрисовку внешнего вида компонента делать
+самостоятельно. Обычно мало кто этим себя
+утруждал, и, как следствие, большое количество
+компонентов, в том числе и стандартных, в
+дизайнере выглядели как рамки.</p>
+
+<p class="MainText">Теперь появилась возможность
+использовать компоненты KOL для визуализации
+соответствующих им МСК компонентов в дизайнере.
+Для этого нужно переопределить виртуальный
+метод <b>CreateKOLControl</b> МСК компонента и в нем создать
+экземпляр соответствующего KOL компонента. Сразу
+после этого KOL компонент начнет отображать себя
+сам. Остается только при изменении свойств МСК
+компонента, влияющих на его отображение,
+изменять соответствующие свойства KOL компонента.
+KOL компонент доступен из МСК компонента через
+свойство <b>FKOLCtrl: PControl</b>.</p>
+
+<p class="MainText">Если Ваш компонент представляет собой
+<i>owner draw combo box</i> или <i>owner draw list box</i>, то в
+зеркальном компоненте Вам необходимо
+переопределить метод <b>SetParent</b> и в нем вызвать <b>RecreateWnd</b>.</p>
+<div class="CodeFragment">
+
+<pre><font color="#000000"><b>procedure </b>TKOLMyCtrl.SetParent( Value: TWinControl );
+<b>begin
+  inherited</b>;
+  <b>if </b>Assigned(Value) <b>then
+    </b>RecreateWnd;
+<b>end</b>;</font></pre>
+</div>
+
+<p class="MainText">Если этого не сделать, то, из-за
+ограничения Windows, не будут отрисовываться <i>owner draw</i>
+элементы вашего компонента.</p>
+
+<p class="MainText">Если в Вашем зеркальном компоненте
+вызывается <b>RecreateWnd</b>, то вам необходимо
+переопределить метод <b>KOLControlRecreated</b>. Он
+вызывается, если компонент был заново создан
+вызовом <b>RecreateWnd</b>. В нем нужно заново устанавить
+ВСЕ свойства реального компонента KOL (<b>FKOLCtrl</b>),
+влияющие на его отображение. </p>
+
+<p class="MainText">Рассмотрим реализацию зеркального
+компонента TKOLCheckMesh. Код зеркального компонента
+МСК не должен располагаться в том же модуле, что и
+код KOL компонента. В нашем случае KOL компонент
+находится в модуле <i>kolCheckMesh.pas</i>, а зеркальный МСК
+компонент - в модуле <i>mckCheckMesh.pas</i>.</p>
+
+<p><span class="MainText">Итак, объявление зеркального
+компонента TKOLCheckMesh:</span></p>
+<div class="CodeFragment">
+
+<pre><b>type
+  </b><font color="#000080">// Наследуем наш зеркальный компонент от зеркала стандартной панели KOL
+  </font>TKOLCheckMesh = <b>class</b>(TKOLPanel)
+  <b>private
+    </b>fOnCellClick: TOnCellClickEvent;
+    fLineColor: TColor;
+    fCheckColor: TColor;
+    fXCells: integer;
+    fYCells: integer;
+
+    <font
+color="#000080">// Обработчики присваивания соответствующим событиям
+    </font><b>procedure </b>SetCheckColor(<b>const </b>Value: TColor);
+    <b>procedure </b>SetLineColor(<b>const </b>Value: TColor);
+    <b>procedure </b>SetOnCellClick(<b>const </b>Value: TOnCellClickEvent);
+    <b>procedure </b>SetXCells(<b>const </b>Value: integer);
+    <b>procedure </b>SetYCells(<b>const </b>Value: integer);
+  <b>protected
+    </b><font
+color="#000080">// Переопределяем TypeName и возвращаем название нашего объекта
+    </font><b>function </b>TypeName: <b>String</b>; <b>override</b>;
+    <font
+color="#000080">// Переопределяем AdditionalUnits и возвращаем название модуля,
+    // в котором реализован объект TCheckMesh
+    </font><b>function </b>AdditionalUnits: <b>String</b>; <b>override</b>;
+    <font
+color="#000080">// Переопределяем SetupParams и возвращаем параметры для конструктора
+    // объекта NewCheckMesh()
+    </font><b>function </b>SetupParams(<b>const </b>AName, AParent: <b>String</b>): <b>String</b>; <b>override</b>;
+    <font
+color="#000080">// Переопределяем SetupConstruct и добавляем код создания объекта
+    // в список SL
+    </font><b>procedure </b>SetupConstruct(SL: TStringList; <b>const </b>AName, AParent,
+                                                    Prefix: <b>String</b>); <b>override</b>;
+    <font
+color="#000080">// Переопределяем SetupConstruct и добавляем код назначения свойств
+    // объекта в список SL
+    </font><b>procedure </b>SetupFirst(SL: TStringList; <b>const </b>AName, AParent,
+                                                Prefix: <b>String</b>); <b>override</b>;
+    <font
+color="#000080">// Переопределяем AssignEvents и добавляем код назначения событий
+    // объекта в список SL
+    </font><b>procedure </b>AssignEvents(SL: TStringList; <b>const </b>AName: <b>String</b>); <b>override</b>;
+    <font
+color="#000080">// Переопределяем BestEventName и возвращаем название события, которое
+    // будет создаваться по двойному щелчку мышью на компоненте в дизайнере
+    </font><b>function </b>BestEventName: <b>String</b>; <b>override</b>;
+    <font
+color="#000080">// Переопределяем CreateKOLControl, в котором создаем экземпляр
+    // реального компонента KOL, который будет отображаться в дизайнере
+    </font><b>procedure </b>CreateKOLControl(Recreating: boolean); <b>override</b>;
+    <font
+color="#000080">// Переопределяем KOLControlRecreated, который вызывается если
+    // компонент был заново создан вызовом RecreateWnd. Здесь нужно
+    // заново устанавить ВСЕ свойства реального компонента KOL, влияющие
+    // на его отображение. RecreateWnd вызывается только в том случае
+    // если какое-то свойство компонента KOL можно задать только в
+    // его конструкторе.
+    </font><b>procedure </b>KOLControlRecreated; <b>override</b>;
+  <b>public
+    constructor </b>Create( AOwner: TComponent ); <b>override</b>;
+  <b>published
+    </b><font
+color="#000080">// Эти свойства будут видны в дизайнере.
+    // Они соответствуют свойствам KOL компонента.
+    </font><b>property </b>LineColor: TColor <b>read </b>fLineColor <b>write </b>SetLineColor;
+    <b>property </b>CheckColor: TColor <b>read </b>fCheckColor <b>write </b>SetCheckColor;
+    <b>property </b>XCells: integer <b>read </b>fXCells <b>write </b>SetXCells;
+    <b>property </b>YCells: integer <b>read </b>fYCells <b>write </b>SetYCells;
+    <b>property </b>OnCellClick: TOnCellClickEvent <b>read </b>fOnCellClick <b>write </b>SetOnCellClick;
+  <b>end</b>;
+</pre>
+</div>
+
+<p class="MainText">А теперь - реализация методов
+зеркального компонента:</p>
+<div class="CodeFragment">
+
+<pre><b>constructor </b>TKOLCheckMesh.Create(AOwner: TComponent);
+<b>begin
+  </b><font
+color="#000080">// В конструкторе устанавливаем значения свойств по умолчанию
+  // ПЕРЕД вызовом конструктора предка
+  </font>fLineColor := clBtnText;
+  fCheckColor := clWindow;
+  fXCells := 4;
+  fYCells := 4;
+  <b>inherited</b>;
+<b>end</b>;
+
+<b>function </b>TKOLCheckMesh.TypeName: <b>String</b>;
+<b>begin
+  </b><font
+color="#000080">// возвращаем название нашего объекта  без приставок Т или Р
+  </font>Result := <font
+color="#008080">'CheckMesh'</font>;
+<b>end</b>;
+
+<b>function </b>TKOLCheckMesh.AdditionalUnits: <b>String</b>;
+<b>begin
+  </b><font
+color="#000080">// возвращаем название модуля, в котором реализован объект TCheckMesh
+  </font>Result := <font
+color="#008080">', CheckMesh'</font>;
+<b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.AssignEvents(SL: TStringList; <b>const </b>AName: <b>String</b>);
+<b>begin
+  inherited</b>;
+  DoAssignEvents(SL, AName, [<font
+color="#008080">'OnCellClick'</font>], [@OnCellClick]);
+<b>end</b>;
+
+<b>function </b>TKOLCheckMesh.BestEventName: <b>String</b>;
+<b>begin
+  </b><font
+color="#000080">// возвращаем название события, которое будет создаваться по двойному
+  // щелчку мышью на компоненте в дизайнере
+  </font>Result := <font
+color="#008080">'OnCellClick'</font>;
+<b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.CreateKOLControl(Recreating: boolean);
+<b>begin
+  </b><font
+color="#000080">// создаем реальный KOL контрол и даем ему родителем KOLParentCtrl
+  // НЕ НУЖНО вызывать inherited!
+  </font>FKOLCtrl := PControl(NewCheckMesh(KOLParentCtrl, edgeStyle, XCells, YCells));
+<b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.KOLControlRecreated;
+<b>begin
+  inherited</b>;
+  <font
+color="#000080">// заново устанавливаем ВСЕ свойства нашего реального KOL контрола, 
+  // влияющие на его отображение
+  </font>PCheckMesh(FKOLCtrl).LineColor := LineColor;
+  PCheckMesh(FKOLCtrl).CheckColor := CheckColor;
+<b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.SetCheckColor(<b>const </b>Value: TColor);
+<b>begin
+  if </b>fCheckColor = Value <b>then </b>exit;
+  fCheckColor := Value;
+  <font
+color="#000080">// Нужно вызывать метод Change при изменении свойства
+  </font>Change;
+<b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.SetLineColor(<b>const </b>Value: TColor);
+<b>begin
+  if </b>fLineColor = Value <b>then </b>exit;
+  fLineColor := Value;
+  <font
+color="#000080">// Изменяем соответствующее свойство FKOLCtrl
+  </font><b>if </b>Assigned(FKOLCtrl) <b>then
+    </b>PCheckMesh(FKOLCtrl).LineColor := Value;
+  <font
+color="#000080">// Нужно вызывать метод Change при изменении свойства
+  </font>Change;
+<b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.SetOnCellClick(<b>const </b>Value: TOnCellClickEvent);
+<b>begin
+  if </b>@fOnCellClick = @Value <b>then </b>exit;
+  fOnCellClick := Value;
+  <font
+color="#000080">// Нужно вызывать метод Change при изменении свойства
+  </font>Change;
+<b>end</b>;
+
+<b>function </b>TKOLCheckMesh.SetupParams(<b>const </b>AName, AParent: <b>String</b>): <b>String</b>;
+<b>begin
+  </b><font
+color="#000080">// Сначала вызываем метод предка (TKOLPanel)
+  </font>Result := <b>inherited </b>SetupParams(AName, AParent);
+  <font
+color="#000080">// В Result получаем что-то вроде 'Result.Form, esNone'
+  // Теперь к этому добавляем параметры нашего компонента.
+  </font>Result := Format(<font
+color="#008080">'%s, %d, %d'</font>, [Result, XCells, YCells]);
+  <font color="#000080">// В итоге получаем что-то вроде 'Result.Form, esNone, 4, 4'
+</font><b>end</b>;
+
+<font
+color="#000080">// В методе SetupConstruct в список SL добавляется код создания объекта
+</font><b>procedure </b>TKOLCheckMesh.SetupConstruct(SL: TStringList; <b>const </b>AName, AParent,
+                                  Prefix: <b>String</b>);
+<b>begin
+  </b><font
+color="#000080">// Здесь мы добавляем в список SL код создания компонента KOL.
+  // Метод GenerateTransparentInits вернет строку, содержащую код
+  // &quot;прозрачной&quot; инициализации объекта, например такой:
+  //      .SetPosition( 8, 8 ).SetSize( 150, 150 )
+  // Нам необходимо сделать приведение к PCheckMesh, т. к. &quot;прозрачные&quot; методы
+  // SetPosition и SetSize возвращают результат типа PControl
+  </font>SL.Add( Format(<font
+color="#008080">'%s%s  :=  PCheckMesh( NewCheckMesh(%s)%s );'</font>,
+                 [ Prefix, AName, SetupParams( AName, AParent ),
+                   GenerateTransparentInits ] ) );
+  <font
+color="#000080">// В результате в список добавится строка вида:
+  // Result.CheckMesh1  :=  PCheckMesh( NewCheckMesh( Result.Form, esNone, 4, 4 ).
+  //                        SetPosition( 8, 8 ).SetSize( 150, 150 ) );
+</font><b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.SetupFirst(SL: TStringList; <b>const </b>AName, AParent,
+                                   Prefix: <b>String</b>);
+<b>begin
+  inherited</b>;
+  <font
+color="#000080">// Здесь мы добавляем в спсок SL код установки свойств объекта
+  // в том случае, если их значения отличаются от начальных
+  </font><b>if </b>LineColor &lt;&gt; clBtnText <b>then
+    </b>SL.Add(Format(<font
+color="#008080">'%s%s.LineColor := %s;'</font>, [Prefix, AName, Color2Str(LineColor)]));
+  <b>if </b>CheckColor &lt;&gt; clWindow <b>then
+    </b>SL.Add(Format(<font
+color="#008080">'%s%s.CheckColor := %s;'</font>, [Prefix, AName, Color2Str(CheckColor)]));
+<b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.SetXCells(<b>const </b>Value: integer);
+<b>begin
+  if </b>fXCells = Value <b>then </b>exit;
+  fXCells := Value;
+  <font
+color="#000080">// Вызываем RecreateWnd, т.к. нет другого способы изменить это свойство
+  </font><b>if </b>Assigned(FKOLCtrl) <b>then
+    </b>RecreateWnd;
+  <font
+color="#000080">// Нужно вызывать метод Change при изменении свойства
+  </font>Change;
+<b>end</b>;
+
+<b>procedure </b>TKOLCheckMesh.SetYCells(<b>const </b>Value: integer);
+<b>begin
+  if </b>fYCells = Value <b>then </b>exit;
+  fYCells := Value;
+  <font
+color="#000080">// Вызываем RecreateWnd, т.к. нет другого способа изменить это свойство
+  </font><b>if </b>Assigned(FKOLCtrl) <b>then
+    </b>RecreateWnd;
+  <font
+color="#000080">// Нужно вызывать метод Change при изменении свойства
+  </font>Change;
+<b>end</b>;
+</pre>
+</div>
+
+<p align="left" class="Titles"><br>
+3 . Использование созданного компонента в проекте
+KOL/MCK.</p>
+
+<p class="MainText">После создания зеркального
+компонента МСК необходимо подключить его к Delphi
+IDE. Для этого нужно создать новый пакет (package),
+добавить в него зеркальный компонент и
+зарегистрировать пакет в среде Delphi. После этого
+компонент станет доступен для визуального
+проектирования.</p>
+
+<p class="MainText">Естественно, компонент можно
+использовать и в чистом KOL проекте (проекте,
+который не использует визуальное проектирование
+MCK). </p>
+
+<p class="MainText">Пример использования компонента CheckMesh
+в проекте KOL:</p>
+<div class="CodeFragment">
+
+<pre><code><font color="#000000"><b>program</b><font color="#008080"> </font>Test;
+
+<b>uses</b><font
+color="#008080"> </font>kol,<font color="#008080"> </font>kolCheckMesh;
+
+<b>var
+</b><font
+color="#008080">  </font>frm:<font color="#008080"> </font>PControl;
+<font color="#008080">  </font>Mesh:<font
+color="#008080"> </font>PCheckMesh;
+<b>begin
+</b><font color="#008080">  </font>frm:=NewForm(<b>nil</b>,<font
+color="#008080"> 'Test'</font>).SetSize(200,<font color="#008080"> </font>200);
+<font
+color="#008080">  </font>Mesh:=NewCheckMesh(frm, esNone, 4, 4);
+<font color="#008080">  </font><b>with</b><font
+color="#008080"> </font>Mesh^<font color="#008080"> </font><b>do</b><font color="#008080"> </font><b>begin
+</b><font
+color="#008080">    </font>SetSize(100,<font color="#008080"> </font>100);
+<font
+color="#008080">    </font>CheckColor:=clRed;
+<font color="#008080">    </font>LineColor:=clBlack;
+<font
+color="#008080">  </font><b>end</b>;
+<font color="#008080">  </font>Run(frm);
+<b>end</b>.</font></code></pre>
+</div>
+
+<p align="right"><font size="2" face="Arial, Helvetica, sans-serif">(с) 2003-2004
+Юрий Сидоров</font></p>
+
+<p align="right"><font size="2" face="Arial, Helvetica, sans-serif"><a
+href="javascript:EMail4('','jura','blagovest.com?subject=KOL%20MCK%20article','')"
+target="_self"><script language="JavaScript" type="text/javascript">
+//<!-- 
+  PrintMail('jura','blagovest.com')
+//-->
+</script></a></font></p>
+</body>
+
+<!-- Mirrored from kolmck.ru/docs/WritingComp.htm by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 May 2018 18:00:53 GMT -->
+</html>
+<script language="JavaScript" type="text/javascript">
+//<!--
+// script to hide e-mail from mail scaner programs
+ function EMail4(prefix, name, domen, suffix)
+  {
+   if(prefix=='' && suffix=='')
+   {
+     location='mailto:' + name + '@' + domen;
+   }
+   else
+   {
+     if(suffix!='') prefix=prefix + ' ' + suffix;
+     location='mailto:"' + prefix + '" ' + name + '@' + domen;
+   }
+  }
+
+function PrintMail(name, domain) {
+  document.write(name +'@'+ domain)
+}
+//-->
+</script>

@@ -1,0 +1,394 @@
+<html>
+
+
+<!-- Mirrored from kolmck.ru/docs/art003.htm by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 May 2018 18:00:52 GMT -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
+<title></title>
+</head>
+<script language="JavaScript" type="text/javascript">
+//<!--
+// script to hide e-mail from mail scaner programs
+ function EMail4(prefix, name, domen, suffix)
+  {
+   if(prefix=='' && suffix=='')
+   {
+     location='mailto:' + name + '@' + domen;
+   }
+   else
+   {
+     if(suffix!='') prefix=prefix + ' ' + suffix;
+     location='mailto:"' + prefix + '" ' + name + '@' + domen;
+   }
+  }
+//-->
+</script>
+
+
+<body bgcolor="#BCBCBC">
+
+<p align="center"><strong><font face="Arial"><big>Better components writing for <a
+href="http://xcl.cjb.net/" target="_top">KOL and MCK</a>.<br>
+</big></font><font face="Courier New">Copyright (C) By Vladimir Kladov.</font></strong></p>
+
+<p align="left"><small><strong><font face="Arial">The purpose of the given article is to
+simplify learning by you, components writer, how to write components for KOL and MCK
+better. I decided to write this text because it seems necessary for those of you who want
+to write additional components to use it with KOL and MCK projects but still do not know
+how to do this or how to do this better. Especially what is concerning visual components,
+based on the </font><font color="#0000A0" face="Courier New">TControl</font><font
+face="Arial"> object. In most cases writers make a mistake, deriving their new visual
+object from </font><font color="#0000A0" face="Courier New">TObj</font><font face="Arial">
+and embedding </font><font color="#0000A0" face="Courier New">TControl</font><font
+face="Arial"> into it as a private data field. In result, they have to provide all
+interface methods and properties by theirself, increasing code size and making their
+objects less power than </font><font color="#0000A0" face="Courier New">TControl</font><font
+face="Arial"> itself. Here I explain how to derive </font><font color="#0000A0"
+face="Courier New">TControl</font><font face="Arial"> based objects directly from </font><font
+color="#0000A0" face="Courier New">TControl</font><font face="Arial">, making it more
+flexible and powerful, and without too many additional code.</font></strong></small></p>
+
+<table border="0" width="320" align="right" cellspacing="16" cellpadding="8">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><small><font color="#0000A0" face="Courier New">type<br>
+    &nbsp; PMyObj = ^TMyObj;<br>
+    &nbsp; TMyObj = object( TObj )<br>
+    &nbsp; private<br>
+    &nbsp; protected<br>
+    &nbsp; public<br>
+    &nbsp; end;<br>
+    <br>
+    function NewMyObj: PMyObj;<br>
+    <br>
+    .... {implementation of TMyObj}<br>
+    <br>
+    function NewMyObj: PMyObj;<br>
+    begin<br>
+    &nbsp; new( Result, Create );<br>
+    &nbsp; { your code here to initialize Result }<br>
+    end;</font></small></td>
+  </tr>
+</table>
+
+<p align="left"><font face="Arial"><strong><big><big>1. </big>Writing non-visual
+&quot;components&quot;.</big> </strong></font></p>
+
+<p align="left" style="text-align: justify"><strong><small><font face="Arial">This is very
+simple. You just derive your object from </font><font color="#0000A0" face="Courier New">TObj</font><font
+face="Arial">, and define a constructing function like </font><font color="#0000A0"
+face="Courier New">NewMyObj(<em>{<small>parameters</small>...}</em>):PMyObj</font><font
+face="Arial">, which creates an instance of the object and initialize its state in
+accordance with parameters passed (if any). All other work is the same as usual when you
+create your own class in VCL.<br>
+<br>
+As usual, it is possible to use virtual destructor </font><font color="#0000A0"
+face="Courier New">Destroy</font><font face="Arial"> to release resources and memory
+allocated by the object when it is destroyed. Just remember, that a destructor must be
+declared with directive </font><font color="#0000A0" face="Courier New">virtual</font><font
+face="Arial"> but not </font><font color="#0000A0" face="Courier New">override</font><font
+face="Arial"> unlike it is done usually for classes. And do not forget to call inherited
+destructor. Also note, that for objects, all ANSI string fields must be assigned to empty
+string in the destructor, because unlike for classes, those are not released
+automatically.</small><br clear="all">
+</font></strong></p>
+
+<table border="0" width="320" align="left" cellspacing="16" cellpadding="8">
+  <tr>
+    <td width="286" bgcolor="#FFFFFF"><font color="#0000A0" face="Courier New"><small>type<br>
+    &nbsp; PMyControl = ^TMyControl;<br>
+    &nbsp; TMyControl = object( TControl )<br>
+    &nbsp; private<br>
+    &nbsp; protected<br>
+    &nbsp; public</small><br>
+    <small>&nbsp;&nbsp;&nbsp; </font><font face="Courier New" color="#FF0000">destructor
+    Destroy; virtual;</font><font color="#0000A0" face="Courier New"><br>
+    &nbsp; end;<br>
+    <br>
+    function NewMyControl: PMyControl;<br>
+    <br>
+    .... {implementation of TMyObj}</small><br>
+    <br>
+    <small>PMyCtlData = ^TMyCtlData;</small><br>
+    <small>TMyCtlData = packed record</small><br>
+    <small>&nbsp; prop1: Pointer;</small><br>
+    <small>&nbsp; event1: TOnEvent;</small><br>
+    <small>&nbsp; str1: String;</small><br>
+    <small>&nbsp; obj1: PObj;</small><br>
+    <small>&nbsp; ...</small><br>
+    <small>end;<br>
+    <br>
+    function NewMyControl: PMyControl;</small><br>
+    <small>var Data: PMyCtlData;<br>
+    begin<br>
+    &nbsp; Result := _NewControl( ... );</small><br>
+    <small>&nbsp; Data := AllocMem( Sizeof( TMyCtlData ) );</small><br>
+    <small>&nbsp; Result.CustomData := Data;<br>
+    &nbsp; { your code here to initialize Result }<br>
+    end;</small><br>
+    <br>
+    </font><small><em><font face="Courier New" color="#008000">{ This destructor will not be
+    called except you do know how to do so. Use the other way as it is described. }</font></em><font
+    color="#0000A0" face="Courier New"> </small><br>
+    </font><font face="Courier New" color="#FF0000"><small>destructor TMyControl.Destroy;</small><br>
+    <small>var Data: PMyCtlData;</small><br>
+    <small>begin</small><br>
+    <small>&nbsp; Data := CustomData;</small><br>
+    <small>&nbsp; FreeMem( Data.prop1 );</small><br>
+    <small>&nbsp; Data.str1 := '';</small><br>
+    <small>&nbsp; Data.obj1.Free;</small><br>
+    <small>&nbsp; inherited;</small><br>
+    <small>end;</small></font></td>
+  </tr>
+</table>
+
+<p align="left" style="text-align: justify"><big><font face="Arial"><strong><big>2.</big>
+Writing visual controls.</strong></font></big></p>
+
+<p align="left" style="text-align: justify"><strong><small><font face="Arial">Since KOL
+uses old Borland Object Pascal model with objects instead classes, it is not possible to
+use virtual constructors and override it. So, to create an instance of </font><font
+color="#0000A0" face="Courier New">TControl</font><font face="Arial">, it is possible only
+to call </font><font color="#0000A0" face="Courier New">_NewControl</font><font
+face="Arial"> function (or something other like </font><font color="#0000A0"
+face="Courier New">_NewCommonControl</font><font face="Arial">, or if you control is an
+extension of one of existing controls, you better call correspondent function, e.g. </font><font
+color="#0000A0" face="Courier New">NewButton</font><font face="Arial">). But in such way
+it is not possible to add new data fields and virtual methods, because all such
+constructing functions work with </font><font color="#0000A0" face="Courier New">TControl</font><font
+face="Arial"> virtual methods table and allocate memory exactly for the instance of </font><font
+color="#0000A0" face="Courier New">TControl</font><font face="Arial">. Therefore, your </font><font
+color="#0000A0" face="Courier New">TControl</font><font face="Arial">-based object can use
+specially added for such purpose fields </font><font color="#0000A0" face="Courier New">CustomData:
+Pointer</font><font face="Arial"> and </font><font color="#0000A0" face="Courier New">CustomObj:
+PObj</font><font face="Arial"> to store desired additional fields, including events. Also,
+the most of initialization code could be placed into overridden method </font><font
+color="#0000A0" face="Courier New">Init</font><font face="Arial">, which is called from
+the constructor </font><font color="#0000A0" face="Courier New">Create</font><font
+face="Arial">.<br>
+<br>
+To use </font><font color="#0000A0" face="Courier New">CustomData</font><font face="Arial">
+pointer to store your additional fields or events, in the constructing function allocate
+memory for it and fill its fields, and assign it to </font><font color="#0000A0"
+face="Courier New">CustomData</font><font face="Arial">. When the object is destroyed, a
+memory pointed by </font><font color="#0000A0" face="Courier New">CustomData</font><font
+face="Arial">, released automatically. But in case when some fields should be released
+additionally (including assigning empty string to ANSI string values, freeing embedded
+objects, etc.), it is better to use </font><font color="#0000A0" face="Courier New">CustomObj</font><font
+face="Arial">, and to performs such operations in its destructor.<br>
+<br>
+In your object methods, always define </font><font color="#0000A0" face="Courier New">Data</font><font
+face="Arial"> variable of type </font><font color="#0000A0" face="Courier New">PMyCtlData</font><font
+face="Arial">, assign either </font><font color="#0000A0" face="Courier New">CustomData</font><font
+face="Arial"> or </font><font color="#0000A0" face="Courier New">CustomObj</font><font
+face="Arial"> field to it and access all additional object's fields through it (when using
+</font><font color="#0000A0" face="Courier New">CustomObj</font><font face="Arial">, you
+should also typecast it to your data type, because </font><font color="#0000A0"
+face="Courier New">PObj</font><font face="Arial"> is not compatible with your object
+pointer type while assigning to). This is only a disadvantage of such method of extending </font><font
+color="#0000A0" face="Courier New">TControl</font><font face="Arial">. But advantages are
+much larger. The main of those is that all the methods and properties of basic </font><font
+color="#0000A0" face="Courier New">TControl</font><font face="Arial"> object are available
+and applicable when appropriate to your new control. And this compatibility will be saved
+in future. I.e. if new methods or properties become available for </font><font
+color="#0000A0" face="Courier New">TControl</font><font face="Arial">, these will be
+automatically accessible in your </font><font color="#0000A0" face="Courier New">TControl</font><font
+face="Arial"> descendant object.<br>
+<br>
+Additionally, you can feel free adding your own methods and properties (for the last,
+having both </font><font color="#0000A0" face="Courier New">read</font><font face="Arial">
+and </font><font color="#0000A0" face="Courier New">write</font><font face="Arial">
+clauses defined through methods, when defined). The only restriction is that methods must
+not be virtual.</small><br>
+<br>
+</font></strong></p>
+
+<table border="0" width="320" align="right" cellspacing="16" cellpadding="8">
+  <tr>
+    <td width="286" bgcolor="#FFFFFF"><font color="#0000A0" face="Courier New"><small>type<br>
+    &nbsp; PMyControl = ^TMyControl;<br>
+    &nbsp; TMyControl = object( TControl )<br>
+    &nbsp; private<br>
+    &nbsp; protected<br>
+    &nbsp; public</small><br>
+    <small>&nbsp;&nbsp;end;<br>
+    <br>
+    function NewMyControl: PMyControl;<br>
+    <br>
+    .... {implementation of TMyObj}</small><br>
+    <br>
+    </font><font face="Courier New" color="#804000"><small>PMyCtlObjData = ^TMyCtlObjData;</small><br>
+    <small>TMyCtlObjData = object(TObj)</small><br>
+    <small>&nbsp; prop1: Pointer;</small><br>
+    <small>&nbsp; event1: TOnEvent;</small><br>
+    <small>&nbsp; str1: String;</small><br>
+    <small>&nbsp; obj1: PObj;</small><br>
+    <small>&nbsp; ...</small><br>
+    <small>&nbsp; destructor Destroy; virtual;</small><br>
+    <small>end;</font><font color="#0000A0" face="Courier New"><br>
+    <br>
+    function NewMyControl: PMyControl;</small><br>
+    <small>var Data: PMyCtlObjData;<br>
+    begin<br>
+    &nbsp; Result := _NewControl( ... );</small><br>
+    <small>&nbsp; new( Data, Create );</small><br>
+    <small>&nbsp; Result.CustomData := Data;<br>
+    &nbsp; { your code here to initialize Result }<br>
+    end;</small><br>
+    <br>
+    <small>...</small><br>
+    </font><font face="Courier New" color="#804000"><small>destructor TMyCtlObjData.Destroy;</small><br>
+    <small>var Data: PMyCtlData;</small><br>
+    <small>begin</small><br>
+    <small>&nbsp; FreeMem( prop1 );</small><br>
+    <small>&nbsp; str1 := '';</small><br>
+    <small>&nbsp; obj1.Free;</small><br>
+    <small>&nbsp; ...</small><br>
+    <small>&nbsp; inherited;</small><br>
+    <small>end;</small></font></td>
+  </tr>
+</table>
+
+<p><strong><small><font face="Arial">In part, you can not override destructor unless
+special programming trick (created by <font color="#B35900">Vyacheslav Gavrik</font> or
+similar). I suggest more easy way, which do not require high programming skill or
+assembler knowledge. The simplest one is using </font><font color="#0000A0"
+face="Courier New">CustomObj</font><font face="Arial">, and writing your destruction code
+in its destructor. Another one is calling method </font><font color="#0000A0"
+face="Courier New">Add2AutoFreeEx</font><font face="Arial"> at the initialization. This
+allows to add a method, which will be called in object destructor.</font></small></strong></p>
+
+<p><small><strong><font face="Arial">In the figure right of this text you can see a sample
+of using </font><font face="Courier New" color="#0000A0">CustomObj</font><font
+face="Arial">.</font></strong></small><br clear="right">
+</p>
+
+<p align="left" style="text-align: justify">&nbsp;</p>
+
+<p align="left" style="text-align: justify"><font face="Arial"><big><strong><big>3. </big>Writing
+a mirror for non-visual component.</strong></big></font></p>
+
+<p align="left" style="text-align: justify"><strong><font face="Arial"><small>You can
+create mirror component for your non-visual object to allow installing it onto component
+palette. You should know for this moment, that MCK components are not actual components,
+these just to represent its mirrored objects in Delphi IDE environment. All its
+functionality is only for generating code for MCK-project, which can be compiled and
+executed at run-time.</small><br>
+<br>
+<small>To create a mirror for non-visual object, named Txxxx, derive your component from </font><font
+color="#0000A0" face="Courier New">TKOLObj</font><font face="Arial">. It should be named
+TKOLxxxx. In such case, names for components dropped onto form are provided like xxxx1,
+xxxx2, etc. And a call of function Newxxxx automatically generated in unitX_N.inc in MCK
+projects, using your component.</small><br>
+<br>
+<small>For samples, see other MCK non-visual components. You can find it in mckobjs.pas,
+located in archive MCK.ZIP.</small><br>
+<br>
+<small>Functions, which you override, depends on task, what should be solved. Possible
+tasks are following.</small><br>
+<br>
+<big>3.1. </big>Providing additional published properties for your object. <small>To do
+so, declare your property in published section of your MCK mirror and always use procedure
+(like SetMyProperty) in write clause of property declaration. In this procedure, set
+internal fields as needed and (<font color="#D90000">important!</font>) call method </font><font
+color="#0000A0" face="Courier New">Change</font><font face="Arial"> to ensure that new
+version of code will be generated in correspondence with changes made. You should also
+provide assigning this property to your run-time object, by either passing its value to
+constructing function Newxxxx as a parameter or generating additional Pascal statements.
+See also topics below how to do this.</font></small></strong></p>
+
+<p align="left" style="text-align: justify"><strong><font face="Arial"><big>3.2. </big>If
+additional parameters needed. <small>In such case, override </font><font color="#0000A0"
+face="Courier New">SetupParams</font><font face="Arial"> function. It returns a string,
+which will be enclosed into parenthesis and inserted following Newxxxx call. For example,
+if a boolean value FALSE should be passed at the object initialization, your overridden </font><font
+color="#0000A0" face="Courier New">SetupParams</font><font face="Arial"> should return
+string 'FALSE'.</font></small></strong></p>
+
+<table border="0" width="420" align="right" cellspacing="16" cellpadding="8">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font color="#0000A0" face="Courier New"><small>procedure
+    TKOLxxxx.SetupFirst(SL: TStringList; const AName, AParent, Prefix: String);<br>
+    begin</small><br>
+    <small>&nbsp; inherited;</small><br>
+    <small>&nbsp; if MyProp then<br>
+    &nbsp;&nbsp;&nbsp; SL.Add( Prefix + AName + '.MyProp := TRUE;' );<br>
+    end;</small></font></td>
+  </tr>
+</table>
+
+<p align="left" style="text-align: justify"><strong><font face="Arial"><big>3.3. </big>If
+additional code should be executed. <small>In such case, override </font><font
+color="#0000A0" face="Courier New">SetupFirst</font><font face="Arial"> or/and </font><font
+color="#0000A0" face="Courier New">SetupLast</font><font face="Arial"> function. It adds
+strings, which are correct Delphi Pascal statements, into string list SL, passed as a
+parameter. E.g., to provide assigning a value TRUE to a property MyProperty of your
+object, write code similar to shown on a figure right to this topic.</small><br>
+<br>
+<small>Calling inherited method useful if you are deriving your object not directly from </font><font
+color="#0000A0" face="Courier New">TKOLObj</font><font face="Arial">, but from one of its
+descendant.</small><br>
+<br>
+<small>The difference between </font><font color="#0000A0" face="Courier New">SetupFirst</font><font
+face="Arial"> and </font><font color="#0000A0" face="Courier New">SetupLast</font><font
+face="Arial"> is only that SetupLast is called after calling SetupFirst for all other form
+objects and controls. This means, that code, added in SetupLast will be executed at run
+time when all other form's objects already exist.</small><br>
+<br clear="all">
+</font></strong></p>
+
+<table border="0" width="420" align="left" cellspacing="16" cellpadding="8">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font color="#0000A0" face="Courier New"><small>procedure
+    TKOLxxxx.AssignEvents(SL: TStringList; const AName: String);<br>
+    begin<br>
+    &nbsp; inherited;<br>
+    &nbsp; DoAssignEvents( SL, AName, [ 'OnMyEvent1', 'OnMyEvent2' ], [ @OnMyEvent1,
+    @OnMyEvent2 ] );<br>
+    end;</small></font></td>
+  </tr>
+</table>
+
+<p align="left" style="text-align: justify"><strong><font face="Arial"><big>3.4. </big>If
+additional events should be assigned. <small>In such case, override </font><font
+color="#0000A0" face="Courier New">AssignEvents</font><font face="Arial"> method, and call
+there </font><font color="#0000A0" face="Courier New">DoAssignEvents</font><font
+face="Arial"> as it is shown on a figure. Do not forget to call inherited method while
+overriding </font><font color="#0000A0" face="Courier New">AssignEvents</font><font
+face="Arial"> (otherwise code for assigning inherited events will not be added even if
+assigned at design time).</small><br clear="all">
+</font></strong></p>
+
+<p align="left" style="text-align: justify"><strong><font face="Arial"><big><big>4. </big>Writing
+a mirror for visual component.</big><br>
+<br>
+<small>Main steps are the same as for writing a mirror component for non-visual object.
+But for visual component, its MCK mirror must be derived from one of </font><font
+color="#0000A0" face="Courier New">TKOLCustomControl</font><font face="Arial"> descendant
+components (or from </font><font color="#0000A0" face="Courier New">TKOLCustomComponent</font><font
+face="Arial"> itself). Possible additional task could be providing appropriate visual
+representation of a control at design time, but in most cases this is not so important.
+And if you could already implement all other functionality with success, this task is not
+hard to you too. Take an attention though, that three methods are responsible for correct
+WYSIWYG painting implementation. These are methods </font><font color="#0000A0"
+face="Courier New">Paint</font><font face="Arial">, </font><font color="#0000A0"
+face="Courier New">WYSIWIGPaintImplemented</font><font face="Arial"> and </font><font
+color="#0000A0" face="Courier New">NoDrawFrames</font><font face="Arial">.</small><br>
+<br>
+<small>Also, it is a good practice for all published properties which could affect visual
+representation of the control at design time to call </font><font color="#0000A0"
+face="Courier New">Invalidate</font><font face="Arial"> method in SetMyProperty-like
+method, responsible for assigning a value to your published property.</font></small></strong></p>
+
+<p align="left" style="text-align: justify">&nbsp;</p>
+
+<p align="right"><small><font face="Arial"><strong>20-Oct-2002</strong></font></small></p>
+
+<p align="left"><font face="Arial"><small><strong>KOL and MCK Web-Page : <a
+href="http://kol.thaddy.co.uk/">http://kol.thaddy.co.uk</a>&nbsp; <br>
+e-mail: <a href="javascript:EMail4('','bonanzas','online.sinor.ru','')" target="_self">bonanzas@online.sinor.ru</a>&nbsp;
+</strong></small></font></p>
+<!--#include file="invisible_other.js"-->
+</body>
+
+<!-- Mirrored from kolmck.ru/docs/art003.htm by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 May 2018 18:00:52 GMT -->
+</html>
