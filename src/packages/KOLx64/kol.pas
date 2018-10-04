@@ -21947,8 +21947,6 @@ begin
        Result := Str;
     Inc(Str);
   end;
-  if Result = nil then
-     Result := Str;
 end;
 {$ENDIF WIN}
 {$ENDIF _FPC}
