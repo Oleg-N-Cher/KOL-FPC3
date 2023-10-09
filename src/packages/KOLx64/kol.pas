@@ -35265,14 +35265,6 @@ begin
       end;
     WM_SIZE:
       begin
-      {$IFDEF FPC} // Fix FPC bug with first tab paint (NetSpirit)
-        GetClientRect( Self_.fHandle, R );
-        Self_.Perform( TCM_ADJUSTRECT, 0, NativeInt( @R ) );
-        for A := 0 to Self_.Count - 1 do
-        begin
-          Self_.Pages[ A ].BoundsRect := R;
-        end;
-      {$ELSE}
         GetClientRect( Self_.fHandle, R );
         Self_.fClientRight := R.Right;
         Self_.fClientBottom := R.Bottom;
@@ -35281,7 +35273,6 @@ begin
         Self_.fClientTop := R.Top;
         Dec(Self_.fClientRight,R.Right);
         Dec(Self_.fClientBottom,R.Bottom);
-      {$ENDIF}
 {$ENDIF}
       end;
   end;
